@@ -127,16 +127,24 @@ export type Zerialize<T extends ZodTypes> =
 type ZodTypeMap = {
   [Key in ZTypeName<ZodTypes>]: Extract<ZodTypes, { _def: { typeName: Key } }>;
 };
+type StateObject = {
+  paths: string[];
+  pathMap: Map<any, string[]>;
+};
+
 type ZerializersMap = {
-  [Key in ZTypeName<ZodTypes>]: (def: ZodTypeMap[Key]["_def"]) => any; //Zerialize<ZodTypeMap[Key]>;
+  [Key in ZTypeName<ZodTypes>]: (
+    def: ZodTypeMap[Key]["_def"],
+    state: StateObject
+  ) => any; //Zerialize<ZodTypeMap[Key]>;
 };
 
 const s = zerialize as any;
 const zerializers = {
-  ZodOptional: (def) => ({ ...s(def.innerType), isOptional: true }),
-  ZodNullable: (def) => ({ ...s(def.innerType), isNullable: true }),
-  ZodDefault: (def) => ({
-    ...s(def.innerType),
+  ZodOptional: (def, state) => ({ ...s(def.innerType, state), isOptional: true }),
+  ZodNullable: (def, state) => ({ ...s(def.innerType, state), isNullable: true }),
+  ZodDefault: (def, state) => ({
+    ...s(def.innerType, state),
     defaultValue: def.defaultValue(),
   }),
 
@@ -264,91 +272,192 @@ const zerializers = {
 
   ZodLiteral: (def) => ({ type: "literal", value: def.value }),
 
-  ZodTuple: (def) => ({
-    type: "tuple",
-    items: def.items.map(zerialize),
-    ...(def.rest
-      ? {
-          rest: zerialize(def.rest),
-        }
-      : {}),
-  }),
-  ZodSet: (def) => ({
-    type: "set",
-    value: s(def.valueType),
-    ...(def.minSize === null ? {} : { minSize: def.minSize.value }),
-    ...(def.maxSize === null ? {} : { maxSize: def.maxSize.value }),
-  }),
-  ZodArray: (def) => ({
-    type: "array",
-    element: s(def.type),
+  ZodTuple: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    const restPaths = [...state.paths];
+    state.paths.push("items");
+    return {
+      type: "tuple",
+      items: def.items.map((item: any, idx: number) => {
+        return zerialize(item, {
+          ...state,
+          paths: [...state.paths, String(idx)],
+        });
+      }),
+      ...(def.rest
+        ? {
+            rest: zerialize(def.rest, {
+              ...state,
+              paths: [...restPaths, "rest"],
+            }),
+          }
+        : {}),
+    };
+  },
+  ZodSet: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("value");
+    return {
+      type: "set",
+      value: s(def.valueType, state),
+      ...(def.minSize === null ? {} : { minSize: def.minSize.value }),
+      ...(def.maxSize === null ? {} : { maxSize: def.maxSize.value }),
+    };
+  },
+  ZodArray: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("element");
 
-    ...(def.exactLength === null
-      ? {}
-      : {
-          minLength: def.exactLength.value,
-          maxLength: def.exactLength.value,
-        }),
-    ...(def.minLength === null ? {} : { minLength: def.minLength.value }),
-    ...(def.maxLength === null ? {} : { maxLength: def.maxLength.value }),
-  }),
+    return {
+      type: "array",
+      element: s(def.type, state),
 
-  ZodObject: (def) => ({
-    type: "object",
-    properties: Object.fromEntries(
-      Object.entries(def.shape()).map(([key, value]) => [
-        key,
-        s(value as ZodTypes),
-      ])
-    ),
-  }),
-  ZodRecord: (def) => ({
-    type: "record",
-    key: zerialize(def.keyType),
-    value: s(def.valueType),
-  }),
-  ZodMap: (def) => ({
-    type: "map",
-    key: s(def.keyType),
-    value: s(def.valueType),
-  }),
+      ...(def.exactLength === null
+        ? {}
+        : {
+            minLength: def.exactLength.value,
+            maxLength: def.exactLength.value,
+          }),
+      ...(def.minLength === null ? {} : { minLength: def.minLength.value }),
+      ...(def.maxLength === null ? {} : { maxLength: def.maxLength.value }),
+    };
+  },
+
+  ZodObject: (def, state) => {
+    if (state.pathMap.has(def)) {
+      return {
+        $ref: "/" + (state.pathMap.get(def) as string[]).join("/"),
+      };
+    }
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("properties");
+
+    return {
+      type: "object",
+      properties: Object.fromEntries(
+        Object.entries(def.shape()).map(([key, value]) => {
+          return [
+            key,
+            s(value as ZodTypes, {
+              ...state,
+              paths: [...state.paths, key],
+            }),
+          ];
+        })
+      ),
+    };
+  },
+  ZodRecord: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    return {
+      type: "record",
+      key: zerialize(def.keyType, {
+        ...state,
+        paths: [...state.paths, 'key']
+      }),
+      value: s(def.valueType, {
+        ...state,
+        paths: [...state.paths, 'value']
+      }),
+    };
+  },
+  ZodMap: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    return {
+      type: "map",
+      key: s(def.keyType, {
+        ...state,
+        paths: [...state.paths, 'key']
+      }),
+      value: s(def.valueType, {
+        ...state,
+        paths: [...state.paths, 'value']
+      }),
+    };
+  },
 
   ZodEnum: (def) => ({ type: "enum", values: def.values }),
   // TODO: turn into enum
   ZodNativeEnum: () => ({ type: "unknown" }),
 
-  ZodUnion: (def) => ({
-    type: "union",
-    options: def.options.map(s),
-  }),
-  ZodDiscriminatedUnion: (def) => ({
-    type: "discriminatedUnion",
-    discriminator: def.discriminator,
-    options: def.options.map(zerialize),
-  }),
-  ZodIntersection: (def) => ({
-    type: "intersection",
-    left: s(def.left),
-    right: zerialize(def.right),
-  }),
+  ZodUnion: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("options");
+    return {
+      type: "union",
+      options: def.options.map((option, idx) => {
+        return s(option, {
+          ...state,
+          paths: [...state.paths, idx]
+        });
+      }),
+    };
+  },
+  ZodDiscriminatedUnion: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("options");
+    return {
+      type: "discriminatedUnion",
+      discriminator: def.discriminator,
+      options: def.options.map((opt, idx) => {
+        return zerialize(opt, {
+          ...state,
+          paths: [...state.paths, String(idx)]
+        });
+      }),
+    };
+  },
+  ZodIntersection: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    return {
+      type: "intersection",
+      left: s(def.left, {
+        ...state,
+        paths: [...state.paths, 'left']
+      }),
+      right: zerialize(def.right, {
+        ...state,
+        paths: [...state.paths, 'right']
+      }),
+    };
+  },
 
-  ZodFunction: (def) => ({
-    type: "function",
-    args: zerialize(def.args),
-    returns: zerialize(def.returns),
-  }),
-  ZodPromise: (def) => ({ type: "promise", value: zerialize(def.type) }),
+  ZodFunction: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    return {
+      type: "function",
+      args: zerialize(def.args, {
+        ...state,
+        paths: [...state.paths, 'args']
+      }),
+      returns: zerialize(def.returns, {
+        ...state,
+        paths: [...state.paths, 'returns']
+      }),
+    };
+  },
+  ZodPromise: (def, state) => {
+    state.pathMap.set(def, [...state.paths]);
+    state.paths.push("value");
+    return {
+      type: "promise",
+      value: zerialize(def.type, state),
+    };
+  },
 
-  ZodLazy: (def) => zerialize(def.getter()),
-  ZodEffects: (def) => zerialize(def.schema),
-  ZodBranded: (def) => zerialize(def.type),
-  ZodPipeline: (def) => zerialize(def.out),
-  ZodCatch: (def) => zerialize(def.innerType),
+  ZodLazy: (def, state) => zerialize(def.getter(), state),
+  ZodEffects: (def, state) => zerialize(def.schema, state),
+  ZodBranded: (def, state) => zerialize(def.type, state),
+  ZodPipeline: (def, state) => zerialize(def.out, state),
+  ZodCatch: (def, state) => zerialize(def.innerType, state),
 } satisfies ZerializersMap as ZerializersMap;
 
 // Must match the exported Zerialize types
-// export function zerialize<T extends ZodTypes>(_schema: T): Zerialize<T> {
-export function zerialize(schema: ZodTypes): unknown {
+// export function zerialize<T extends ZodTypes>(_schema: T, state?: StateObject): Zerialize<T> {
+export function zerialize(schema: ZodTypes, state?: StateObject): unknown {
   const { _def: def } = schema;
-  return zerializers[def.typeName](def as any);
+  return zerializers[def.typeName](
+    def as any,
+    state ?? { paths: [], pathMap: new Map() }
+  );
 }
