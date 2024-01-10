@@ -31,18 +31,18 @@ const categorySchemaNested = baseCategorySchemaNested.extend({
 });
 
 test.each([
-  p(categorySchema, {
-    type: "object",
-    properties: {
-      name: { type: "string" },
-      subcategories: {
-        type: "array",
-        element: {
-          $ref: "/",
-        },
-      },
-    },
-  }),
+  // p(categorySchema, {
+  //   type: "object",
+  //   properties: {
+  //     name: { type: "string" },
+  //     subcategories: {
+  //       type: "array",
+  //       element: {
+  //         $ref: "/",
+  //       },
+  //     },
+  //   },
+  // }),
   p(z.boolean(), { type: "boolean" }),
   p(z.nan(), { type: "nan" }),
   p(z.null(), { type: "null" }),

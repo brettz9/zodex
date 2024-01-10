@@ -1,5 +1,9 @@
 import { ValueOf } from "type-fest";
 
+export type SzRef = {
+  $ref: string;
+};
+
 export type SzNumber = {
   type: "number";
   min?: number;

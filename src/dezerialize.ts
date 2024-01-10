@@ -17,6 +17,7 @@ import {
   SzEnum,
   SzPromise,
   SzType,
+  SzRef,
   SzString,
   SzNumber,
   SzBoolean,
@@ -112,8 +113,10 @@ export type Dezerialize<T extends SzType> =
     ? z.ZodPromise<Dezerialize<Value>>
     : unknown;
 
+type StateObject = {path: string, pathMap: Map<string, z.ZodObject<any>>, keyMap: Map<string, string>}
+
 type DezerializersMap = {
-  [T in SzType["type"]]: (shape: Extract<SzType, { type: T }>) => ZodTypes; //Dezerialize<Extract<SzType, { type: T }>>;
+  [T in SzType["type"]]: (shape: Extract<SzType, { type: T }>, state?: StateObject) => ZodTypes; //Dezerialize<Extract<SzType, { type: T }>>;
 };
 const dezerializers = {
   number: (shape) => {
@@ -204,15 +207,26 @@ const dezerializers = {
 
   literal: (shape) => z.literal(shape.value),
 
-  tuple: ((shape: SzTuple) => {
-    let i = z.tuple(shape.items.map(dezerialize) as any);
+  tuple: ((shape: SzTuple, state: StateObject) => {
+    let i = z.tuple(shape.items.map((item, idx) => {
+      return dezerialize(item, {
+        ...state,
+        path: state.path + '/items/' + idx
+      });
+    }) as any);
     if (shape.rest) {
-      i = i.rest(dezerialize(shape.rest) as any);
+      i = i.rest(dezerialize(shape.rest, {
+        ...state,
+        path: state.path + '/rest'
+      }) as any);
     }
     return i;
   }) as any,
-  set: ((shape: SzSet) => {
-    let i = z.set(dezerialize(shape.value));
+  set: ((shape: SzSet, state: StateObject) => {
+    let i = z.set(dezerialize(shape.value, {
+      ...state,
+      path: state.path + '/value'
+    }));
     if (shape.minSize !== undefined) {
       i = i.min(shape.minSize);
     }
@@ -221,8 +235,11 @@ const dezerializers = {
     }
     return i;
   }) as any,
-  array: ((shape: SzArray) => {
-    let i = z.array(dezerialize(shape.element));
+  array: ((shape: SzArray, state: StateObject) => {
+    let i = z.array(dezerialize(shape.element, {
+      ...state,
+      path: state.path + '/element'
+    }));
     if (shape.minLength !== undefined) {
       i = i.min(shape.minLength);
     }
@@ -232,60 +249,140 @@ const dezerializers = {
     return i;
   }) as any,
 
-  object: ((shape: SzObject) =>
-    z.object(
+  object: ((shape: SzObject, state: StateObject) => {
+    const {path} = state;
+
+    const obj = state.pathMap.has(path)
+      ? state.pathMap.get(path) as z.ZodObject<any>
+      : z.object({});
+
+    let extended = obj.extend(
       Object.fromEntries(
-        Object.entries(shape.properties).map(([key, value]) => [
-          key,
-          dezerialize(value),
-        ])
+        Object.entries(shape.properties).map(([key, value]): any => {
+          const val = value as SzType | SzRef;
+          if ('$ref' in val) {
+            if (!state.pathMap.has(val.$ref)) {
+              // Save current object to extend with main properties later
+              state.pathMap.set(val.$ref, obj);
+              state.keyMap.set(val.$ref, key);
+              return null;
+            }
+            const o = state.pathMap.get(val.$ref) as z.ZodObject<any>;
+            o.extend({
+              // Todo: Replace `extended` with suitable type, e.g., array
+              [key]: z.lazy(() => extended),
+            }) as any;
+            return [key, obj];
+          }
+
+          return [
+            key,
+            dezerialize(value, {
+              ...state,
+              path: path + '/properties/' + key,
+            }),
+          ];
+        }).filter(Boolean)
       )
-    )) as any,
-  record: ((shape: SzRecord) =>
-    z.record(dezerialize(shape.key), dezerialize(shape.value))) as any,
-  map: ((shape: SzMap<any, any>) =>
-    z.map(dezerialize(shape.key), dezerialize(shape.value))) as any,
+    );
+
+    const refKey = state.keyMap.get(path);
+    if (refKey !== undefined) {
+      extended = extended.extend({
+        [refKey]: z.lazy(() => extended)
+      });
+    }
+
+    state.pathMap.set(path, extended);
+
+    return extended;
+  }) as any,
+  record: ((shape: SzRecord, state: StateObject) =>
+    z.record(dezerialize(shape.key, {
+      ...state,
+      path: state.path + '/key'
+    }), dezerialize(shape.value, {
+      ...state,
+      path: state.path + '/value'
+    }))) as any,
+  map: ((shape: SzMap<any, any>, state: StateObject) =>
+    z.map(dezerialize(shape.key, {
+      ...state,
+      path: state.path + '/key'
+    }), dezerialize(shape.value, {
+      ...state,
+      path: state.path + '/value'
+    }))) as any,
 
   enum: ((shape: SzEnum) => z.enum(shape.values)) as any,
 
-  union: ((shape: SzUnion) =>
-    z.union(shape.options.map(dezerialize) as any)) as any,
-  discriminatedUnion: ((shape: SzDiscriminatedUnion) =>
+  union: ((shape: SzUnion, state: StateObject) =>
+    z.union(shape.options.map((option, idx) => {
+      return dezerialize(option, {
+        ...state,
+        path: state.path + '/options/' + idx
+      });
+    }) as any)) as any,
+  discriminatedUnion: ((shape: SzDiscriminatedUnion, state: StateObject) =>
     z.discriminatedUnion(
       shape.discriminator,
-      shape.options.map(dezerialize) as any
+      shape.options.map((option, idx) => {
+        return dezerialize(option, {
+          ...state,
+          path: state.path + '/options/' + idx
+        });
+      }) as any
     )) as any,
-  intersection: ((shape: SzIntersection) =>
-    z.intersection(dezerialize(shape.left), dezerialize(shape.right))) as any,
+  intersection: ((shape: SzIntersection, state: StateObject) =>
+    z.intersection(dezerialize(shape.left, {
+      ...state,
+      path: state.path + '/left'
+    }), dezerialize(shape.right, {
+      ...state,
+      path: state.path + '/right'
+    }))) as any,
 
-  function: ((shape: SzFunction<any, any>) =>
+  function: ((shape: SzFunction<any, any>, state: StateObject) =>
     z.function(
-      dezerialize(shape.args) as any,
-      dezerialize(shape.returns)
+      dezerialize(shape.args, {
+        ...state,
+        path: state.path + '/args'
+      }) as any,
+      dezerialize(shape.returns, {
+        ...state,
+        path: state.path + '/returns'
+      })
     )) as any,
-  promise: ((shape: SzPromise) => z.promise(dezerialize(shape.value))) as any,
+  promise: ((shape: SzPromise, state: StateObject) => {
+    return z.promise(dezerialize(shape.value, {
+      ...state,
+      path: state.path + '/value'
+    }));
+  }) as any,
 } satisfies DezerializersMap as DezerializersMap;
 
 // Must match the exported Dezerialize types
 // export function dezerialize<T extends SzType>(_shape: T): Dezerialize<T>;
-export function dezerialize(shape: SzType): ZodTypes {
+export function dezerialize(shape: SzType, state: StateObject = {
+  path: '', pathMap: new Map(), keyMap: new Map()
+}): ZodTypes {
   if ("isOptional" in shape) {
     const { isOptional, ...rest } = shape;
-    const inner = dezerialize(rest);
+    const inner = dezerialize(rest, state);
     return isOptional ? inner.optional() : inner;
   }
 
   if ("isNullable" in shape) {
     const { isNullable, ...rest } = shape;
-    const inner = dezerialize(rest);
+    const inner = dezerialize(rest, state);
     return isNullable ? inner.nullable() : inner;
   }
 
   if ("defaultValue" in shape) {
     const { defaultValue, ...rest } = shape;
-    const inner = dezerialize(rest);
+    const inner = dezerialize(rest, state);
     return inner.default(defaultValue);
   }
 
-  return dezerializers[shape.type](shape as any);
+  return dezerializers[shape.type](shape as any, state);
 }
