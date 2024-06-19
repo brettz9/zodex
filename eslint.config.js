@@ -5,12 +5,7 @@ import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: [
-      "src/schema.zodex.json",
-      "dist/",
-      ".idea",
-      "coverage",
-    ],
+    ignores: ["src/schema.zodex.json", "dist/", ".idea", "coverage"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
