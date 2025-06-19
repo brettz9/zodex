@@ -9,7 +9,52 @@ import { dezerialize, SzType, zerialize, Zerialize } from "./index";
 const zodexSchemaJSON = JSON.parse(
   fs.readFileSync("./schema.zodex.json", "utf-8"),
 );
-const zodexSchema = dezerialize(zodexSchemaJSON);
+// Hook into the schema to add our checks; would really need to be in
+//   more places
+zodexSchemaJSON.$defs.type.checks = [{ name: "catchall-never" }];
+// Make the object preserve the properties so we can detect and fail on them
+zodexSchemaJSON.$defs.string.left.catchall = { type: "unknown" };
+
+const zodexSchema = dezerialize(zodexSchemaJSON, {
+  checks: {
+    "catchall-never"(ctx) {
+      const v = ctx.value as SzType;
+      let allowedKeys;
+      switch (v.type) {
+        // Todo: Finish other types
+        case "string": {
+          // This is an over-simplifcation (e.g., `position` without `includes`)
+          const string = zodexSchemaJSON.$defs.string;
+          allowedKeys = Object.keys(string.left.properties).concat(
+            string.right.left.options.flatMap((opt) => {
+              return Object.keys(opt.properties);
+            }),
+            string.right.right.options.flatMap((opt) => {
+              return Object.keys(opt.properties);
+            }),
+            Object.keys(zodexSchemaJSON.$defs.modifiers.properties),
+          );
+          break;
+        }
+      }
+      if (allowedKeys) {
+        const badKeys = Object.keys(v).filter((key) => {
+          return key !== "type" && !allowedKeys.includes(key);
+        });
+
+        if (badKeys.length) {
+          ctx.issues.push({
+            message: "Unexpected keys: " + badKeys.join(", "),
+
+            code: "custom",
+            type: v.type,
+            input: ctx.value,
+          });
+        }
+      }
+    },
+  },
+});
 
 const p = <Schema extends ZodTypes, Shape extends SzType = Zerialize<Schema>>(
   schema: Schema,
@@ -526,6 +571,21 @@ test.each([
   expect(zerialize(dezerialize(shape) as any)).toEqual(zerialize(schema));
   const parsed = zodexSchema.safeParse(shape);
   expect(parsed.success).to.equal(true);
+});
+
+test.only("extra properties", () => {
+  const badShape = {
+    type: "string",
+    extraProp: true,
+    checks: [
+      {
+        name: "catchall-never",
+      },
+    ],
+  };
+
+  const parsed = zodexSchema.safeParse(badShape);
+  expect(parsed.success).to.equal(false);
 });
 
 test("custom errors", () => {
