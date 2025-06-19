@@ -333,3 +333,9 @@ export type SzUnionize<T extends SzType | SzRef> =
                       : T extends SzPromise<infer Value>
                         ? SzUnionize<Value>
                         : never);
+
+export type KeysOfUnion<T> = T extends T ? keyof T : never;
+
+export type SzPropertyKeysOf<T extends SzType> = KeysOfUnion<
+  Extract<T, { type: "object" }>["properties"]
+>;
