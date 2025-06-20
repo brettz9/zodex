@@ -11,6 +11,7 @@ Breaking changes:
 - fix: remove nativeEnum type
 - fix: represent `enum` type as object instead of array, with number as well as string keys and values
 - fix: disallow other properties with JSON references (per spec)
+- feat: adds `exports`
 
 Other changes:
 
@@ -23,3 +24,4 @@ Other changes:
 - feat: add `version` property for `uuid`
 - feat: add to literals: bigInt, boolean, null, and undefined types
 - feat: bump `type-fest` and `zod` dependencies
+- fix: allow any type as Map key
