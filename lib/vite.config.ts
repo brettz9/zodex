@@ -8,6 +8,7 @@ export default defineConfig({
         "dist",
         "*.config.js",
         "*.config.ts",
+        "*.cjs",
         "*.js",
         "node_modules",
         "infer.ts",

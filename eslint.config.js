@@ -7,7 +7,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["lib/schema.zodex.json", "**/dist/", ".idea", "coverage"],
+    ignores: [
+      "lib/schema.zodex.json",
+      "**/dist/",
+      ".idea",
+      "coverage",
+      "**/*.cjs",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
