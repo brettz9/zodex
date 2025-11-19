@@ -9,6 +9,11 @@
     "import": "./dist/esm/index.js",
     "default": "./dist/index.js"
   },
+  "bugs": "https://github.com/commonbaseapp/zodex/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/commonbaseapp/zodex"
+  },
   "keywords": [
     "zod",
     "serialization",

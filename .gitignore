@@ -3,3 +3,4 @@ dist/
 .eslintcache
 coverage
 .idea
+lib/README.md
