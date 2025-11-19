@@ -124,9 +124,9 @@ export type SzTemplateLiteral = {
 
 export type SzFile = {
   type: "file";
-  min: number;
-  max: number;
-  mime: string[];
+  min?: number;
+  max?: number;
+  mime?: string[];
 };
 
 export type SzBoolean = { type: "boolean"; coerce?: boolean };

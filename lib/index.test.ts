@@ -155,6 +155,9 @@ test.each([
     max: 1000000,
     mime: ["image/png"],
   }),
+  p(z.file(), {
+    type: "file",
+  }),
   p(z.email(), { type: "string", kind: "email" }),
   p(
     z.email({

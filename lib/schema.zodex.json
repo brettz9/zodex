@@ -410,13 +410,16 @@
                 "values": ["file"]
               },
               "min": {
-                "type": "number"
+                "type": "number",
+                "isOptional": true
               },
               "max": {
-                "type": "number"
+                "type": "number",
+                "isOptional": true
               },
               "mime": {
                 "type": "array",
+                "isOptional": true,
                 "element": {
                   "type": "string"
                 }

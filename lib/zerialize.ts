@@ -322,7 +322,6 @@ const zerializers = {
   number: (def, opts) => {
     const checks = def.checks?.reduce((o, check) => {
       const chk = check._zod.def.check;
-      const format = (check as z.core.$ZodCheckNumberFormat)._zod.def.format;
       return {
         ...o,
         ...(chk == "greater_than"
@@ -819,7 +818,7 @@ const zerializers = {
   },
   transform: (def, opts) => {
     let name = null;
-    if ("transforms" in opts && opts.transforms) {
+    if (opts.transforms) {
       for (const [transformName, transformItem] of Object.entries(
         opts.transforms,
       )) {
