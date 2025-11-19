@@ -25,14 +25,14 @@ enum Fruits {
 const baseCategorySchema = z.object({
   name: z.string(),
 });
-const categorySchema = baseCategorySchema.extend({
+const categorySchema: any = baseCategorySchema.extend({
   subcategories: z.lazy(() => categorySchema.array()),
 });
 
 const baseCategorySchemaNested = z.object({
   name: z.string(),
 });
-const categorySchemaNested = baseCategorySchemaNested.extend({
+const categorySchemaNested: any = baseCategorySchemaNested.extend({
   subcategory: z.lazy(() => categorySchemaNested),
 });
 
@@ -730,8 +730,8 @@ test("coerce (boolean)", () => {
 
 test("preprocess", () => {
   const transforms = {
-    addFive: (val) => val + 5,
-    addTwo: (val) => val + 2,
+    addFive: (val: any) => val + 5,
+    addTwo: (val: any) => val + 2,
   };
 
   const schema = z.preprocess(transforms.addFive, z.number());
@@ -760,8 +760,8 @@ test("preprocess", () => {
 
 test("bad transform", () => {
   const transforms = {
-    addFive: (val) => val + 5,
-    addTwo: (val) => val + 2,
+    addFive: (val: any) => val + 5,
+    addTwo: (val: any) => val + 2,
   };
 
   const schema = z.number().transform(transforms.addFive);
@@ -792,8 +792,8 @@ test("bad transform", () => {
 
 test("transforms", () => {
   const transforms = {
-    addFive: (val) => val + 5,
-    addTwo: (val) => val + 2,
+    addFive: (val: any) => val + 5,
+    addTwo: (val: any) => val + 2,
   };
 
   const schema = z.number().transform(transforms.addFive);
@@ -901,7 +901,7 @@ test("named checks and transforms", () => {
   };
 
   const transforms = {
-    earlier: (val) => new Date(new Date().getTime() - 60000),
+    earlier: (val: any) => new Date(new Date().getTime() - 60000),
   };
 
   const schema = z
@@ -1018,7 +1018,7 @@ test("recursive schemas (nested)", () => {
     name: z.string(),
   });
 
-  const categorySchema = baseCategorySchema.extend({
+  const categorySchema: any = baseCategorySchema.extend({
     subcategories: z.lazy(() => categorySchema.array()),
   });
 
@@ -1074,9 +1074,10 @@ test("recursive schemas", () => {
   //   subcategories: Category[];
   // };
 
-  const categorySchema /* : z.ZodType<Category> */ = baseCategorySchema.extend({
-    subcategories: z.lazy(() => categorySchema.array()),
-  });
+  const categorySchema: any /* : z.ZodType<Category> */ =
+    baseCategorySchema.extend({
+      subcategories: z.lazy(() => categorySchema.array()),
+    });
 
   // categorySchema.parse({
   //   name: "People",
@@ -1402,7 +1403,7 @@ test("Nested recursion", () => {
     .optional()
     .describe('{"json":{"type":"string"}}');
 
-  const orderBySchema = z.object({
+  const orderBySchema: any = z.object({
     id: z
       .object({
         isAsc: z.coerce.boolean().optional(),

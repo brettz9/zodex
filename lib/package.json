@@ -19,7 +19,8 @@
   "license": "MIT",
   "scripts": {
     "test": "vitest --coverage --silent=false",
-    "build": "rm -rf dist && pnpm tsc && cp schema.zodex.json dist/schema.zodex.json && tsup index.ts --format esm --legacy-output",
+    "tsc": "tsc",
+    "build": "rm -rf dist && tsc -p tsconfig-prod.json && cp schema.zodex.json dist/schema.zodex.json && tsup index.ts --format esm --legacy-output",
     "prepublish": "pnpm run build"
   },
   "peerDependencies": {
