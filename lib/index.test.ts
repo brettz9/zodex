@@ -377,6 +377,11 @@ test.each([
 
   p(z.literal("Gregor"), { type: "literal", values: ["Gregor"] }),
 
+  p(z.literal(["Gregor", "Brett"]), {
+    type: "literal",
+    values: ["Gregor", "Brett"],
+  }),
+
   p(z.symbol(), { type: "symbol" }),
 
   p(z.array(z.number()), {
