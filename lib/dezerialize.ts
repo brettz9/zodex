@@ -712,6 +712,14 @@ export function dezerializeRefs(
     return result;
   }
 
+  if ("meta" in shape) {
+    const { meta, ...rest } = shape;
+    const inner = d(rest, opts);
+    const result = meta ? inner.meta(meta) : inner;
+    opts.pathToSchema.set(opts.path, result);
+    return result;
+  }
+
   return dezerializers[shape.type](shape as any, opts);
 }
 

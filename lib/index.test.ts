@@ -44,6 +44,12 @@ test.each([
     }),
     { type: "boolean", description: "Some boolean" },
   ),
+  p(
+    z.any().meta({
+      otherInfo: "Some boolean",
+    }),
+    { type: "any", meta: { otherInfo: "Some boolean" } },
+  ),
   p(z.nan(), { type: "nan" }),
   p(z.null(), { type: "null" }),
   p(z.undefined(), { type: "undefined" }),

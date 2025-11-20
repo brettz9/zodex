@@ -324,6 +324,7 @@
           "isOptional": true
         },
         "description": { "type": "string", "isOptional": true },
+        "meta": { "type": "object", "isOptional": true, "properties": {} },
         "readonly": { "type": "boolean", "isOptional": true }
       }
     },

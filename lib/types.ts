@@ -263,6 +263,11 @@ export type SzNullable = { isNullable: boolean };
 export type SzOptional = { isOptional: boolean };
 export type SzDefault<T> = { defaultValue: T };
 export type SzDescription = { description: string };
+export type SzMeta = {
+  meta: {
+    [x: string]: unknown;
+  };
+};
 export type SzReadonly = { readonly: boolean };
 
 export type SzRef = { $ref: string };
@@ -280,6 +285,7 @@ export type SzExtras = Partial<
     SzOptional &
     SzDefault<any> &
     SzDescription &
+    SzMeta &
     SzReadonly &
     SzError &
     SzChecks

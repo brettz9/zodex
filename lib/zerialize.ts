@@ -923,6 +923,12 @@ export function zerializeRefs<T extends ZodTypes>(
     zer.description = schema.description;
   }
 
+  const meta = schema.meta();
+
+  if (meta && (Object.keys(meta).length !== 1 || !meta.description)) {
+    zer.meta = meta;
+  }
+
   return zer;
 }
 
