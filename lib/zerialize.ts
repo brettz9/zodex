@@ -634,7 +634,7 @@ const zerializers = {
   },
   undefined: () => ({ type: "undefined" }),
   null: () => ({ type: "null" }),
-  any: () => ({ type: "any" }),
+  any: (def, opts) => ({ type: "any", ...getCustomChecksAndErrors(def, opts) }),
   unknown: () => ({ type: "unknown" }),
   never: () => ({ type: "never" }),
   void: () => ({ type: "void" }),
