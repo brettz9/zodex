@@ -699,7 +699,7 @@ export function dezerializeRefs(
   if ("description" in shape && typeof shape.description === "string") {
     const { description, ...rest } = shape;
     const inner = d(rest, opts);
-    const result = inner.describe(description);
+    const result = inner.meta({ description });
     opts.pathToSchema.set(opts.path, result);
     return result;
   }

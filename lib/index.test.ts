@@ -38,6 +38,12 @@ const categorySchemaNested: any = baseCategorySchemaNested.extend({
 
 test.each([
   p(z.boolean(), { type: "boolean" }),
+  p(
+    z.boolean().meta({
+      description: "Some boolean",
+    }),
+    { type: "boolean", description: "Some boolean" },
+  ),
   p(z.nan(), { type: "nan" }),
   p(z.null(), { type: "null" }),
   p(z.undefined(), { type: "undefined" }),
@@ -1406,7 +1412,7 @@ test("Nested recursion", () => {
         .optional(),
     })
     .optional()
-    .describe('{"json":{"type":"string"}}');
+    .meta({ description: '{"json":{"type":"string"}}' });
 
   const orderBySchema: any = z.object({
     id: z
