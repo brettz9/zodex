@@ -760,6 +760,22 @@
             }
           },
           {
+            "description": "Function",
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "literal",
+                "values": ["function"]
+              },
+              "input": {
+                "$ref": "#/$defs/tuple"
+              },
+              "output": {
+                "$ref": "#/$defs/reference-or-type"
+              }
+            }
+          },
+          {
             "description": "Transform",
             "type": "object",
             "properties": {

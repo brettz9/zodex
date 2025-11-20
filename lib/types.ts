@@ -235,6 +235,12 @@ export type SzPromise<T extends SzType = SzType> = {
   value: T;
 };
 
+export type SzFunction<T extends SzTuple, U extends SzType> = {
+  type: "function";
+  input: T;
+  output: U;
+};
+
 export type SzCatch<T extends SzType = SzType> = {
   type: "catch";
   value: any;
@@ -305,6 +311,7 @@ export type SzType = (
   | SzSet<any>
   | SzEnum<any>
   | SzPromise<any>
+  | SzFunction<any, any>
   | SzCatch<any>
   | SzPipe<any, any>
   | SzTransform

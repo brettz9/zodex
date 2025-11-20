@@ -230,6 +230,14 @@ const getError = (shape: SzType, opts: DezerializerOptions) => {
 const d = dezerializeRefs;
 
 const dezerializers = {
+  function: (shape, opts) => {
+    const i = z.function({
+      input: d(shape.input, opts) as any,
+      output: d(shape.output, opts),
+    });
+
+    return getCustomChecks(i, shape, opts);
+  },
   number: (shape, opts) => {
     const method =
       shape.format && NUMBER_FORMATS.has(shape.format)

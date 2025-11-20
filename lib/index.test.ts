@@ -155,6 +155,27 @@ test.each([
     ],
   }),
 
+  p(
+    z.function({
+      input: [z.any()],
+      output: z.string(),
+    }),
+    {
+      type: "function",
+      input: {
+        type: "tuple",
+        items: [
+          {
+            type: "any",
+          },
+        ],
+      },
+      output: {
+        type: "string",
+      },
+    },
+  ),
+
   p(z.file().min(10_000).max(1_000_000).mime(["image/png"]), {
     type: "file",
     min: 10000,
@@ -531,7 +552,9 @@ test.each([
 ] as const)("zerialize %#", (schema, shape) => {
   const zer = zerialize(schema);
   expect(zer).toEqual(shape);
-  expect(zerialize(dezerialize(shape) as any)).toEqual(zerialize(schema));
+  const dezer = dezerialize(shape) as any;
+  const rezer = zerialize(dezer);
+  expect(rezer).toEqual(zerialize(schema));
   const parsed = zodexSchema.safeParse(shape);
   if (!parsed.success) {
     console.log(parsed);

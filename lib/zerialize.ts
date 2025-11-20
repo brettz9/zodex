@@ -301,6 +301,17 @@ const getCustomChecksAndErrors = (
 
 const s = zerializeRefs as any;
 const zerializers = {
+  function: (def, opts) => ({
+    input: s(def.input, {
+      ...opts,
+      currentPath: [...opts.currentPath, "input"],
+    }),
+    output: s(def.output, {
+      ...opts,
+      currentPath: [...opts.currentPath, "output"],
+    }),
+    type: "function",
+  }),
   optional: (def, opts) => ({
     ...s(def.innerType, opts, true),
     isOptional: true,

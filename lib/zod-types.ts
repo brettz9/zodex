@@ -62,6 +62,7 @@ export type ZodTypes =
   | z.ZodPromise<SomeType>
   | z.ZodPipe<SomeType, SomeType>
   | z.ZodTransform<unknown, unknown>
-  | z.ZodFile;
+  | z.ZodFile
+  | z.ZodFunction;
 
 export type ZTypeName<T extends ZodTypes> = T["_zod"]["def"]["type"];
