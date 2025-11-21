@@ -139,3 +139,8 @@ or target the whole object or individual properties.
   `refine()`, `custom()` and `instanceof` methods (and they will be
   ignored), but these are really just implementations of `check()`
   which is supported
+
+## Other projects
+
+- [json-schema-to-zodex](https://github.com/brettz9/json-schema-to-zodex)
+- [zod-to-json-schema](https://github.com/StefanTerdell/zod-to-json-schema)
